@@ -1,0 +1,38 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+ provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// Твоя первая модель задачи
+model Order {
+  id                String    @id @default(auto()) @map("_id") @db.ObjectId
+  factoryName       String    // Название фабрики
+  furnitureType     String    // Тип мебели
+  proformaNumber    String    // Номер проформы (строка)
+  clientName        String    // Имя клиента
+  clientPhone       String?   // Номер телефона (новое)
+  clientAddress     String?   // Адрес доставки (новое)
+  isExpo            Boolean   @default(false) // Чекбокс ЭКСПО
+  paidAt            DateTime? // Дата оплаты (null = не оплачено)
+  readyDate         DateTime? // Дата готовности
+  shippedDate       DateTime? // Дата отгрузки
+  
+  // Статус заявки: 
+  // "none" - пусто, 
+  // "requested" - галочка (есть), 
+  // "sent" - кружочек (отправлена)
+  shippingRequest   String    @default("none") 
+  
+  status            String    @default("todo") // Для колонок Канбана
+  createdAt         DateTime  @default(now())
+}
