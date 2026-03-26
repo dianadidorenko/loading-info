@@ -2,6 +2,8 @@ import { db } from "@/lib/db";
 import { addOrder } from "./actions";
 import TaskCard from "./TaskCard";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
   // Получаем все заказы из базы, самые новые будут вверху
   const allOrders = await db.order.findMany({
