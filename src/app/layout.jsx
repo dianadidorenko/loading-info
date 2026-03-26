@@ -12,7 +12,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "Habitare",
+  title: "Information",
   description: "Loading Information",
 };
 
