@@ -1,32 +1,35 @@
 import { db } from "@/lib/db";
 import { addOrder } from "./actions";
+import { getServerSession } from "next-auth";
+import { redirect } from "next/navigation";
 import TaskCard from "./TaskCard";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  // Получаем все заказы из базы, самые новые будут вверху
+  // 1. Сначала проверяем сессию
+  const session = await getServerSession();
+  if (!session) {
+    redirect("/login");
+  }
+
+  // 2. Только если залогинены, тянем данные (один раз!)
   const allOrders = await db.order.findMany({
     orderBy: { createdAt: "desc" },
   });
 
   return (
     <main className="p-10 bg-gray-50 min-h-screen text-black font-sans">
-      <div className="max-w-5xl mx-auto">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold text-blue-800">
-            Система учета заказов 📦
-          </h1>
-          <p className="text-gray-500 mt-2 text-sm italic">
-            Управление поставками мебели из Европы
-          </p>
-        </header>
-
+      <div className="mx-auto">
         {/* Форма добавления заказа */}
         <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-10">
-          <h2 className="text-lg font-semibold mb-4 text-gray-700">
-            Новый заказ
-          </h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-700">Новый заказ</h2>
+            <span className="text-[10px] text-gray-400 font-mono">
+              User: {session.user.email}
+            </span>
+          </div>
+
           <form
             action={addOrder}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-[12px]"
@@ -34,38 +37,36 @@ export default async function Home() {
             <input
               name="factoryName"
               placeholder="Название фабрики"
-              className="border p-2.5 rounded-lg text-black outline-none focus:border-blue-400"
+              className="border p-2.5 rounded-lg outline-none focus:border-blue-400"
               required
             />
             <input
               name="furnitureType"
               placeholder="Тип мебели"
-              className="border p-2.5 rounded-lg text-black outline-none focus:border-blue-400"
+              className="border p-2.5 rounded-lg outline-none focus:border-blue-400"
               required
             />
             <input
               name="proformaNumber"
               placeholder="№ проформы"
-              className="border p-2.5 rounded-lg text-black outline-none focus:border-blue-400"
+              className="border p-2.5 rounded-lg outline-none focus:border-blue-400"
               required
             />
             <input
               name="clientName"
               placeholder="Имя клиента"
-              className="border p-2.5 rounded-lg text-black outline-none focus:border-blue-400"
+              className="border p-2.5 rounded-lg outline-none focus:border-blue-400"
               required
             />
-
-            {/* НОВЫЕ ПОЛЯ */}
             <input
               name="clientPhone"
               placeholder="Номер телефона"
-              className="border p-2.5 rounded-lg text-black outline-none focus:border-blue-400"
+              className="border p-2.5 rounded-lg outline-none focus:border-blue-400"
             />
             <input
               name="clientAddress"
               placeholder="Адрес доставки"
-              className="border p-2.5 rounded-lg text-black outline-none focus:border-blue-400"
+              className="border p-2.5 rounded-lg outline-none focus:border-blue-400"
             />
 
             <div className="flex flex-col">
@@ -75,7 +76,7 @@ export default async function Home() {
               <input
                 type="date"
                 name="paidAt"
-                className="border p-2 rounded-lg text-black"
+                className="border p-2 rounded-lg"
               />
             </div>
 
@@ -86,7 +87,7 @@ export default async function Home() {
               <input
                 type="date"
                 name="readyDate"
-                className="border p-2 rounded-lg text-black"
+                className="border p-2 rounded-lg"
               />
             </div>
 
@@ -111,7 +112,7 @@ export default async function Home() {
           </form>
         </section>
 
-        {/* Общий список карточек без колонок */}
+        {/* Список карточек */}
         <div className="space-y-6">
           <div className="flex justify-between items-center border-b pb-2 border-gray-200">
             <h2 className="text-xl font-bold text-gray-800">Все заказы</h2>
@@ -127,7 +128,7 @@ export default async function Home() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center justify-items-center">
               {allOrders.map((order) => (
                 <TaskCard key={order.id} task={order} />
               ))}

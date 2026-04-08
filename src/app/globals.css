@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+.is-locked-server .lock-content-wrapper,
+.is-locked-server main {
+  display: none !important;
+}
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
