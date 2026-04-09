@@ -6,12 +6,25 @@ import { ListChevronsDownUp, ListChevronsUpDown } from "lucide-react";
 export default function TaskCard({ task }) {
   const [mounted, setMounted] = useState(false);
 
-  // Состояние свернутости/развернутости карточки
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // 1. Инициализируем состояние из localStorage (если оно там есть)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem(`collapsed_${task.id}`);
+      return saved === "true"; // localStorage хранит строки, переводим в boolean
+    }
+    return false;
+  });
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // 2. Следим за изменением isCollapsed и записываем в localStorage
+  useEffect(() => {
+    if (mounted) {
+      localStorage.setItem(`collapsed_${task.id}`, isCollapsed);
+    }
+  }, [isCollapsed, task.id, mounted]);
 
   // Твоя оригинальная логика статусов
   const renderShipStatus = () => {
@@ -20,24 +33,27 @@ export default function TaskCard({ task }) {
     return "Нет заявки на отгрузку";
   };
 
-  // Твоя оригинальная функция форматирования даты
   const formatDate = (date) => {
     if (!date) return "-";
     if (!mounted) return "...";
     return new Date(date).toLocaleDateString();
   };
 
-  // Функция для быстрого обновления текстовых полей
   const handleBlur = (fieldName, value) => {
     if (task[fieldName] !== value) {
       updateOrderField(task.id, { [fieldName]: value });
     }
   };
 
+  // Отрисовываем пустой каркас или скелетон, пока компонент не "гидратировался"
+  // Это предотвращает ошибку несоответствия серверного и клиентского HTML
+  if (!mounted)
+    return <div className="h-[100px] bg-gray-50 animate-pulse rounded-2xl" />;
+
   // --- РЕЖИМ 1: СВЕРНУТАЯ КАРТОЧКА ---
   if (isCollapsed) {
     return (
-      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex justify-between gap-6 w-1/2 items-center shadow-sm hover:bg-white transition-all">
+      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex justify-between gap-6 items-center shadow-sm hover:bg-white transition-all w-full">
         <div className="flex flex-col gap-1 overflow-hidden">
           <span className="text-[11px] font-black text-blue-800 uppercase tracking-widest truncate">
             {task.factoryName || "Завод не указан"}
@@ -47,59 +63,57 @@ export default function TaskCard({ task }) {
           </span>
         </div>
 
-        {/* Кнопка РАЗВЕРНУТЬ */}
-        <div>
-          <button
-            onClick={() => setIsCollapsed(false)}
-            className="bg-blue-50 text-blue-600 p-2 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2 px-3"
-          >
-            <span className="text-[10px] font-bold uppercase">Развернуть</span>
-            <ListChevronsUpDown size={18} />
-          </button>
-        </div>
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="bg-blue-50 text-blue-600 p-2 rounded-xl hover:bg-blue-100 transition-colors flex items-center gap-2 px-3 shrink-0"
+        >
+          <span className="text-[10px] font-bold uppercase">Развернуть</span>
+          <ListChevronsUpDown size={18} />
+        </button>
       </div>
     );
   }
 
+  // --- РЕЖИМ 2: РАЗВЕРНУТАЯ КАРТОЧКА ---
   return (
-    <div className="relative bg-white p-4 pt-8 rounded-2xl shadow-sm border border-gray-100 text-black hover:shadow-md transition-all flex gap-4 h-full max-w-180 group justify-between w-full">
+    <div className="relative bg-white p-4 pt-8 rounded-2xl shadow-sm border border-gray-100 text-black hover:shadow-md transition-all flex gap-4 h-full group justify-between w-full">
       <div className="flex gap-2 items-center absolute top-3 right-3">
         <button
           onClick={() => {
-            if (confirm("Удалить запись?")) deleteOrder(task.id);
+            if (confirm("Удалить запись?")) {
+              deleteOrder(task.id);
+              localStorage.removeItem(`collapsed_${task.id}`); // Чистим мусор при удалении
+            }
           }}
-          className="cursor-pointer text-[17px] col-span-2 text-red-200 hover:text-red-500 text-center uppercase font-bold transition-colors"
+          className="cursor-pointer text-[17px] text-red-200 hover:text-red-500 text-center uppercase font-bold transition-colors"
         >
           X
         </button>
         <button
           onClick={() => setIsCollapsed(true)}
-          className={`text-gray-300 hover:text-gray-500 rounded-2xl transition-colors hover:cursor-pointer ${task.isExpo ? " " : "ml-2"}`}
+          className="text-gray-300 hover:text-gray-500 rounded-2xl transition-colors hover:cursor-pointer"
           title="Свернуть"
         >
-          <ListChevronsDownUp size={"20"} />
+          <ListChevronsDownUp size={20} />
         </button>
       </div>
-      {/* Шапка с редактируемой фабрикой, тип товара */}
+
+      {/* Левая колонка */}
       <div className="flex flex-col w-full">
-        {/* Шапка с редактируемой фабрикой */}
         <div className="flex justify-between items-end mb-3">
           <input
             defaultValue={task.factoryName}
             onBlur={(e) => handleBlur("factoryName", e.target.value)}
-            className="text-[15px] font-bold text-blue-800 uppercase text-xs tracking-wider border-b-2 border-blue-100 pb-1 bg-transparent outline-none focus:border-blue-400 w-full"
+            className="text-[15px] font-bold text-blue-800 uppercase tracking-wider border-b-2 border-blue-100 pb-1 bg-transparent outline-none focus:border-blue-400 w-full"
             placeholder="Название фабрики"
           />
-          <div className="flex items-center gap-2">
-            {task.isExpo && (
-              <span className="text-[10px] bg-amber-400 text-white px-2 py-0.5 rounded-full font-bold shadow-sm ml-2 whitespace-nowrap">
-                EXPO 🖼️
-              </span>
-            )}
-          </div>
+          {task.isExpo && (
+            <span className="text-[10px] bg-amber-400 text-white px-2 py-0.5 rounded-full font-bold shadow-sm ml-2 whitespace-nowrap">
+              EXPO 🖼️
+            </span>
+          )}
         </div>
 
-        {/* Редактируемый тип мебели и проформа */}
         <div className="text-[13px] space-y-2 flex-grow">
           <div className="pb-2 border-b border-gray-50 text-gray-800">
             <div className="flex items-center gap-1">
@@ -116,46 +130,32 @@ export default function TaskCard({ task }) {
               <input
                 defaultValue={task.proformaNumber}
                 onBlur={(e) => handleBlur("proformaNumber", e.target.value)}
-                className="bg-gray-100 border border-gray-300 hover:bg-gray-150 focus:bg-white focus:ring-1 focus:ring-blue-100 px-1 rounded outline-none w-24 transition-all"
+                className="bg-gray-100 border border-gray-300 px-1 rounded outline-none w-24 transition-all"
               />
             </div>
           </div>
 
-          {/* Блок данных клиента */}
           <div className="bg-blue-50/40 p-2 rounded-xl border border-blue-100/50 space-y-2">
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 font-bold text-blue-900">
               <span>👤</span>
               <input
                 defaultValue={task.clientName}
                 onBlur={(e) => handleBlur("clientName", e.target.value)}
-                className="font-bold text-blue-900 bg-transparent outline-none focus:bg-white rounded px-1 w-full"
+                className="bg-transparent outline-none w-full"
                 placeholder="Имя клиента"
               />
             </div>
-
             <div className="flex items-center gap-1 text-[11px] text-gray-600">
               <span>📞</span>
               <input
-                placeholder="Добавить телефон..."
                 defaultValue={task.clientPhone}
                 onBlur={(e) => handleBlur("clientPhone", e.target.value)}
-                className="bg-transparent hover:bg-blue-100/50 focus:bg-white focus:ring-1 focus:ring-blue-200 px-1 rounded outline-none w-full font-mono transition-all"
-              />
-            </div>
-
-            <div className="flex items-start gap-1 text-[11px] text-gray-500 italic">
-              <span>📍</span>
-              <textarea
-                placeholder="Добавить адрес..."
-                defaultValue={task.clientAddress}
-                onBlur={(e) => handleBlur("clientAddress", e.target.value)}
-                rows="2"
-                className="bg-transparent hover:bg-blue-100/50 focus:bg-white focus:ring-1 focus:ring-blue-200 px-1 rounded outline-none w-full resize-none transition-all"
+                className="bg-transparent outline-none w-full font-mono"
+                placeholder="Телефон"
               />
             </div>
           </div>
 
-          {/* Индикатор статуса заявки на отгрузку */}
           <div
             className={`text-[11px] font-black flex items-center justify-center my-4 border border-gray-250 rounded-xl p-1 text-center ${
               task.shippingRequest === "sent"
@@ -170,55 +170,47 @@ export default function TaskCard({ task }) {
         </div>
       </div>
 
-      {/* Статусы дат, Кнопки действий  */}
+      {/* Правая колонка */}
       <div className="flex flex-col w-full">
-        {/* Статусы дат */}
         <div className="space-y-3">
-          <div className="space-y-3 pt-1">
-            <div className="flex flex-col gap-1">
-              <label
-                className={`text-[10px] uppercase font-bold ml-1 ${task.paidAt ? "text-green-600" : "text-red-500"}`}
-              >
-                💰 {task.paidAt ? `Оплачено:` : "Не оплачено"}
-              </label>
-              <input
-                type="date"
-                defaultValue={
-                  task.paidAt
-                    ? new Date(task.paidAt).toISOString().split("T")[0]
-                    : ""
-                }
-                onChange={(e) =>
-                  updateOrderField(task.id, { paidAt: e.target.value })
-                }
-                className={`text-xs border rounded-lg px-2 py-1.5 outline-none transition-all ${
-                  task.paidAt
-                    ? "border-green-200 bg-green-50/30 text-green-700"
-                    : "border-red-100 bg-red-50/30 text-red-500"
-                }`}
-              />
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] text-gray-400 uppercase font-bold ml-1">
-                📅 Готовность:
-              </label>
-              <input
-                type="date"
-                defaultValue={
-                  task.readyDate
-                    ? new Date(task.readyDate).toISOString().split("T")[0]
-                    : ""
-                }
-                onChange={(e) =>
-                  updateOrderField(task.id, { readyDate: e.target.value })
-                }
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-blue-300 transition-all text-black"
-              />
-            </div>
+          <div className="flex flex-col gap-1">
+            <label
+              className={`text-[10px] uppercase font-bold ml-1 ${task.paidAt ? "text-green-600" : "text-red-500"}`}
+            >
+              💰 {task.paidAt ? `Оплачено:` : "Не оплачено"}
+            </label>
+            <input
+              type="date"
+              defaultValue={
+                task.paidAt
+                  ? new Date(task.paidAt).toISOString().split("T")[0]
+                  : ""
+              }
+              onChange={(e) =>
+                updateOrderField(task.id, { paidAt: e.target.value })
+              }
+              className="text-xs border rounded-lg px-2 py-1.5 outline-none"
+            />
           </div>
 
-          {/* Фактическая отгрузка */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] text-gray-400 uppercase font-bold ml-1">
+              📅 Готовность:
+            </label>
+            <input
+              type="date"
+              defaultValue={
+                task.readyDate
+                  ? new Date(task.readyDate).toISOString().split("T")[0]
+                  : ""
+              }
+              onChange={(e) =>
+                updateOrderField(task.id, { readyDate: e.target.value })
+              }
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 outline-none"
+            />
+          </div>
+
           <div className="border-t border-gray-50">
             <label className="text-[10px] text-gray-400 block mb-1 uppercase font-black tracking-tighter">
               📅 Дата отгрузки
@@ -233,13 +225,12 @@ export default function TaskCard({ task }) {
               onChange={(e) =>
                 updateOrderField(task.id, { shippedDate: e.target.value })
               }
-              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 w-full outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-300 transition-all text-black"
+              className="text-xs border border-gray-200 rounded-lg px-2 py-1.5 w-full outline-none"
             />
           </div>
         </div>
 
-        {/* Кнопки действий */}
-        <div className="grid grid-cols-2 gap-2 pt-2 mt-auto w-full">
+        <div className="grid grid-cols-2 gap-2 pt-2 w-full">
           <button
             onClick={() =>
               updateOrderField(task.id, { shippingRequest: "requested" })
@@ -252,7 +243,6 @@ export default function TaskCard({ task }) {
           >
             Заявка ✅
           </button>
-
           <button
             onClick={() =>
               updateOrderField(task.id, { shippingRequest: "sent" })
