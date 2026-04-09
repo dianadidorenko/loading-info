@@ -37,7 +37,7 @@ export default function TaskCard({ task }) {
   // --- РЕЖИМ 1: СВЕРНУТАЯ КАРТОЧКА ---
   if (isCollapsed) {
     return (
-      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex justify-between items-center shadow-sm hover:bg-white transition-all">
+      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 flex justify-between gap-6 w-1/2 items-center shadow-sm hover:bg-white transition-all">
         <div className="flex flex-col gap-1 overflow-hidden">
           <span className="text-[11px] font-black text-blue-800 uppercase tracking-widest truncate">
             {task.factoryName || "Завод не указан"}
